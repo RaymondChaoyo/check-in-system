@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2113.6">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+    span.s1 {font: 12.0px 'PingFang TC'}
+    span.s2 {font: 12.0px 'Apple Color Emoji'}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;<span class="s1">打卡系統</span>&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;script src="https://static.line-scdn.net/liff/2.22.1/sdk.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>body { font-family: sans-serif; padding: 20px; text-align: center; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.btn { display: block; width: 100%; padding: 15px; margin: 15px 0; background: #06c755; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer;}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.btn-out { background: #ff4d4f; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>#loading { margin-top: 50px; color: #666; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>#main { display: none; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="loading"&gt;<span class="s1">系統啟動中</span>...&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="main"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;<span class="s1">你好，</span>&lt;span id="uName"&gt;&lt;/span&gt;&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button class="btn" onclick="send('<span class="s1">上班</span>')"&gt;<span class="s1">上班打卡</span>&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button class="btn btn-out" onclick="send('<span class="s1">下班</span>')"&gt;<span class="s1">下班打卡</span>&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>// <span class="s1">★★★</span> <span class="s1">設定區</span> <span class="s1">★★★</span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const LIFF_ID = '2009047868-BpH3oMoa'; // <span class="s1">您的</span> LIFF ID</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby8N4BT27XU2ZQ7ASmDzUDv3gVcLyKhrW3w6gp9RyIZNOV5VN36ZvZpqB81iX17fFurcw/exec'; // <span class="s1">您的</span> GAS <span class="s1">網址</span></p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// <span class="s1">初始化</span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>window.onload = function() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>liff.init({ liffId: LIFF_ID }).then(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!liff.isLoggedIn()) {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>liff.login();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>liff.getProfile().then(profile =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('uName').innerText = profile.displayName;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('loading').style.display = 'none';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('main').style.display = 'block';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>window.userProfile = profile;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}).catch(err =&gt; alert('<span class="s1">啟動失敗</span>: ' + err));</p>
+<p class="p1"><span class="Apple-converted-space">    </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// <span class="s1">送出資料</span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function send(type) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if(!navigator.geolocation) return alert('<span class="s1">無</span> GPS');</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('loading').style.display = 'block';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('loading').innerText = '<span class="s1">打卡中</span>...';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('main').style.display = 'none';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>navigator.geolocation.getCurrentPosition(pos =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// <span class="s1">準備資料</span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const payload = {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>userName: window.userProfile.displayName,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>userId: window.userProfile.userId,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>type: type,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>lat: pos.coords.latitude,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>lng: pos.coords.longitude,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>address: 'GPS'</p>
+<p class="p1"><span class="Apple-converted-space">        </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// <span class="s1">使用</span> fetch <span class="s1">發送</span> (<span class="s1">這是關鍵改動</span>)</p>
+<p class="p1"><span class="Apple-converted-space">        </span>fetch(GAS_API_URL, {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>method: 'POST',</p>
+<p class="p1"><span class="Apple-converted-space">          </span>mode: 'no-cors', // <span class="s1">避開</span> CORS <span class="s1">檢查</span></p>
+<p class="p1"><span class="Apple-converted-space">          </span>headers: { 'Content-Type': 'application/json' },</p>
+<p class="p1"><span class="Apple-converted-space">          </span>body: JSON.stringify(payload)</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}).then(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>alert('<span class="s2">✅</span> <span class="s1">打卡成功！</span>');</p>
+<p class="p1"><span class="Apple-converted-space">          </span>liff.closeWindow();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}).catch(err =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>alert('<span class="s2">❌</span> <span class="s1">失敗：</span>' + err);</p>
+<p class="p1"><span class="Apple-converted-space">          </span>liff.closeWindow(); // <span class="s1">因為</span> no-cors <span class="s1">看不到回傳，通常假設成功</span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>}, err =&gt; alert('<span class="s1">定位失敗</span>'));</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
