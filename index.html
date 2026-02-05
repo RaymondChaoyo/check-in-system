@@ -2,79 +2,157 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>打卡系統</title>
+  
   <script src="https://static.line-scdn.net/liff/2.22.1/sdk.js"></script>
+  <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+
   <style>
-    body { font-family: sans-serif; padding: 20px; text-align: center; }
-    .btn { display: block; width: 100%; padding: 15px; margin: 15px 0; background: #06c755; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; text-align: center; background-color: #f4f4f4; }
+    .btn { display: block; width: 100%; padding: 15px; margin: 15px 0; background: #06c755; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
     .btn-out { background: #ff4d4f; }
-    #loading { margin-top: 50px; color: #666; }
-    #main { display: none; }
+    #loading { margin-top: 30px; font-size: 16px; color: #333; }
+    #main { display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    #debug_console { margin-top: 30px; text-align: left; font-size: 12px; color: #666; border: 1px solid #ccc; padding: 10px; background: #fff; word-break: break-all; }
   </style>
 </head>
 <body>
-  <div id="loading">系統啟動中...</div>
+
+  <div id="loading">
+    🚀 系統啟動中...<br>
+    <span id="status_text" style="color:blue;">正在載入資源</span>
+  </div>
   
   <div id="main">
-    <h2>你好，<span id="uName"></span></h2>
+    <h2>👋 早安，<span id="uName">夥伴</span></h2>
+    <p>請選擇打卡項目：</p>
     <button class="btn" onclick="send('上班')">上班打卡</button>
     <button class="btn btn-out" onclick="send('下班')">下班打卡</button>
   </div>
 
+  <div id="debug_console">
+    <strong>系統日誌：</strong><br>
+  </div>
+
   <script>
-    // ★★★ 設定區 ★★★
+    // 輔助函式：顯示日誌在畫面上
+    function log(msg) {
+      console.log(msg);
+      var box = document.getElementById('debug_console');
+      box.innerHTML += msg + '<br>';
+      document.getElementById('status_text').innerText = msg;
+    }
+
+    // 0. 啟動 vConsole
+    try {
+      var vConsole = new VConsole();
+      log('✅ vConsole 啟動成功');
+    } catch (e) {
+      log('⚠️ vConsole 啟動失敗: ' + e);
+    }
+
+    // ★★★ 設定區 (請確認這裡) ★★★
     const LIFF_ID = '2009047868-BpH3oMoa'; 
-    // 請確認這串網址結尾是 /exec (且來自您的 Apps Script 部署網址)
+    // 請填入您 GAS 部署後的「網頁應用程式網址」 (結尾是 /exec)
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby8N4BT27XU2ZQ7ASmDzUDv3gVcLyKhrW3w6gp9RyIZNOV5VN36ZvZpqB81iX17fFurcw/exec';
 
-    // 初始化
+    // 1. 檢查 SDK
+    if (!window.liff) {
+      log('❌ 嚴重錯誤: LIFF SDK 未載入。請檢查網路或 HTML 標籤。');
+      alert('LINE SDK 載入失敗，請切換 Wi-Fi / 4G 測試。');
+    } else {
+      log('✅ LIFF SDK 已載入');
+    }
+
+    // 2. 初始化流程
     window.onload = function() {
-      liff.init({ liffId: LIFF_ID }).then(() => {
-        if (!liff.isLoggedIn()) {
-          liff.login();
-        } else {
-          liff.getProfile().then(profile => {
-             document.getElementById('uName').innerText = profile.displayName;
-             document.getElementById('loading').style.display = 'none';
-             document.getElementById('main').style.display = 'block';
-             window.userProfile = profile;
-          });
-        }
-      }).catch(err => alert('啟動失敗: ' + err));
+      log('準備執行 liff.init...');
+      
+      if (!LIFF_ID) {
+        log('❌ 錯誤: LIFF ID 未設定');
+        return;
+      }
+
+      liff.init({ liffId: LIFF_ID })
+        .then(() => {
+          log('✅ liff.init 成功！');
+          
+          if (!liff.isLoggedIn()) {
+            log('🔄 用戶未登入，跳轉登入頁...');
+            liff.login();
+          } else {
+            log('👤 已登入，讀取個人資料...');
+            liff.getProfile()
+              .then(profile => {
+                log('✅ 取得資料: ' + profile.displayName);
+                document.getElementById('uName').innerText = profile.displayName;
+                
+                // 切換畫面
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main').style.display = 'block';
+                
+                // 存全域變數
+                window.userProfile = profile;
+              })
+              .catch(err => {
+                log('❌ 讀取資料失敗: ' + err);
+              });
+          }
+        })
+        .catch(err => {
+          log('❌ 初始化失敗 (Catch): ' + err.code + ' ' + err.message);
+          console.error(err);
+          alert('初始化失敗：\n' + err.message);
+        });
     };
 
-    // 送出資料
+    // 3. 打卡送出功能
     function send(type) {
-      if(!navigator.geolocation) return alert('無 GPS');
+      if(!navigator.geolocation) return alert('您的裝置不支援 GPS');
       
+      // 鎖定畫面
       document.getElementById('loading').style.display = 'block';
-      document.getElementById('loading').innerText = '打卡中...';
       document.getElementById('main').style.display = 'none';
+      log('🛰️ 正在定位...');
 
       navigator.geolocation.getCurrentPosition(pos => {
+        log('✅ 定位成功，準備傳送...');
+        
         const payload = {
           userName: window.userProfile.displayName,
           userId: window.userProfile.userId,
           type: type,
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          address: 'GPS'
+          address: 'GPS定位'
         };
 
-        // 使用 fetch 發送
+        // 使用 fetch 發送 (針對 GitHub Pages 的跨網域請求)
         fetch(GAS_API_URL, {
           method: 'POST',
-          mode: 'no-cors', // 避開 CORS 檢查
-          headers: { 'Content-Type': 'application/json' },
+          mode: 'no-cors', // 關鍵：避開 CORS 錯誤
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(payload)
         }).then(() => {
-          alert('✅ 打卡成功！');
+          log('✅ 請求已發送');
+          alert('打卡成功！');
           liff.closeWindow();
         }).catch(err => {
-          alert('❌ 失敗：' + err);
-          liff.closeWindow(); // 因為 no-cors 看不到回傳，通常假設成功
+          log('❌ 發送失敗: ' + err);
+          alert('傳送失敗，請截圖給管理員。');
+          // 失敗時恢復畫面
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('main').style.display = 'block';
         });
+
+      }, err => {
+        log('❌ 定位失敗: ' + err.message);
+        alert('定位失敗，請確認 GPS 已開啟。');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main').style.display = 'block';
       });
     }
   </script>
