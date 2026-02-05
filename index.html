@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>打卡系統</title>
   
-  <script src="https://static.line-scdn.net/liff/2.22.1/sdk.js"></script>
   <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
 
   <style>
@@ -14,14 +13,15 @@
     .btn-out { background: #ff4d4f; }
     #loading { margin-top: 30px; font-size: 16px; color: #333; }
     #main { display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    #debug_console { margin-top: 30px; text-align: left; font-size: 12px; color: #666; border: 1px solid #ccc; padding: 10px; background: #fff; word-break: break-all; }
+    #status_text { color: blue; font-weight: bold; }
+    .log-box { margin-top: 20px; text-align: left; font-size: 12px; color: #666; border: 1px solid #ccc; padding: 10px; background: #fff; word-break: break-all; }
   </style>
 </head>
 <body>
 
   <div id="loading">
     🚀 系統啟動中...<br>
-    <span id="status_text" style="color:blue;">正在載入資源</span>
+    <span id="status_text">準備載入 LINE SDK...</span>
   </div>
   
   <div id="main">
@@ -31,126 +31,109 @@
     <button class="btn btn-out" onclick="send('下班')">下班打卡</button>
   </div>
 
-  <div id="debug_console">
-    <strong>系統日誌：</strong><br>
-  </div>
+  <div class="log-box" id="debug_console">System Log:<br></div>
 
   <script>
-    // 輔助函式：顯示日誌在畫面上
+    // 0. 初始化日誌工具
+    var vConsole = new VConsole();
     function log(msg) {
       console.log(msg);
-      var box = document.getElementById('debug_console');
-      box.innerHTML += msg + '<br>';
+      document.getElementById('debug_console').innerHTML += msg + '<br>';
       document.getElementById('status_text').innerText = msg;
     }
 
-    // 0. 啟動 vConsole
-    try {
-      var vConsole = new VConsole();
-      log('✅ vConsole 啟動成功');
-    } catch (e) {
-      log('⚠️ vConsole 啟動失敗: ' + e);
-    }
-
-    // ★★★ 設定區 (請確認這裡) ★★★
+    // ★★★ 設定區 ★★★
     const LIFF_ID = '2009047868-BpH3oMoa'; 
-    // 請填入您 GAS 部署後的「網頁應用程式網址」 (結尾是 /exec)
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby8N4BT27XU2ZQ7ASmDzUDv3gVcLyKhrW3w6gp9RyIZNOV5VN36ZvZpqB81iX17fFurcw/exec';
 
-    // 1. 檢查 SDK
-    if (!window.liff) {
-      log('❌ 嚴重錯誤: LIFF SDK 未載入。請檢查網路或 HTML 標籤。');
-      alert('LINE SDK 載入失敗，請切換 Wi-Fi / 4G 測試。');
-    } else {
-      log('✅ LIFF SDK 已載入');
+    // 1. 動態載入 SDK 函式 (關鍵！)
+    function loadLiffSDK(callback) {
+      log('步驟 1: 開始下載 LINE SDK...');
+      var script = document.createElement('script');
+      // 改用 Edge 版本，相容性較好
+      script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+      
+      script.onload = function() {
+        log('步驟 2: SDK 下載完成');
+        callback(); // 成功後才執行下一步
+      };
+      
+      script.onerror = function() {
+        log('❌ 錯誤: SDK 下載失敗！');
+        alert('無法連線 LINE 伺服器。\n請檢查網路，或關閉阻擋廣告軟體。');
+      };
+      
+      document.head.appendChild(script);
     }
 
-    // 2. 初始化流程
+    // 2. 主流程
     window.onload = function() {
-      log('準備執行 liff.init...');
-      
-      if (!LIFF_ID) {
-        log('❌ 錯誤: LIFF ID 未設定');
-        return;
-      }
+      // 先執行下載，確保 liff 變數存在
+      loadLiffSDK(function() {
+        
+        if (!window.liff) {
+          log('❌ 嚴重錯誤: SDK 載入後 liff 依然不存在');
+          return;
+        }
 
-      liff.init({ liffId: LIFF_ID })
-        .then(() => {
-          log('✅ liff.init 成功！');
-          
-          if (!liff.isLoggedIn()) {
-            log('🔄 用戶未登入，跳轉登入頁...');
-            liff.login();
-          } else {
-            log('👤 已登入，讀取個人資料...');
-            liff.getProfile()
-              .then(profile => {
-                log('✅ 取得資料: ' + profile.displayName);
+        log('步驟 3: 呼叫 liff.init...');
+        liff.init({ liffId: LIFF_ID })
+          .then(() => {
+            log('✅ liff.init 成功！');
+            
+            if (!liff.isLoggedIn()) {
+              log('🔄 未登入，轉跳中...');
+              liff.login();
+            } else {
+              liff.getProfile().then(profile => {
+                log('✅ 取得用戶: ' + profile.displayName);
                 document.getElementById('uName').innerText = profile.displayName;
-                
-                // 切換畫面
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('main').style.display = 'block';
-                
-                // 存全域變數
                 window.userProfile = profile;
-              })
-              .catch(err => {
-                log('❌ 讀取資料失敗: ' + err);
               });
-          }
-        })
-        .catch(err => {
-          log('❌ 初始化失敗 (Catch): ' + err.code + ' ' + err.message);
-          console.error(err);
-          alert('初始化失敗：\n' + err.message);
-        });
+            }
+          })
+          .catch(err => {
+            log('❌ 初始化失敗: ' + err);
+            alert('初始化失敗：' + err.message);
+          });
+      });
     };
 
-    // 3. 打卡送出功能
+    // 3. 打卡功能
     function send(type) {
-      if(!navigator.geolocation) return alert('您的裝置不支援 GPS');
+      if(!navigator.geolocation) return alert('無 GPS');
       
-      // 鎖定畫面
       document.getElementById('loading').style.display = 'block';
+      document.getElementById('loading').innerHTML = '📡 定位中...';
       document.getElementById('main').style.display = 'none';
-      log('🛰️ 正在定位...');
 
       navigator.geolocation.getCurrentPosition(pos => {
-        log('✅ 定位成功，準備傳送...');
-        
+        log('定位成功，發送資料...');
         const payload = {
           userName: window.userProfile.displayName,
           userId: window.userProfile.userId,
           type: type,
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          address: 'GPS定位'
+          address: 'GPS'
         };
 
-        // 使用 fetch 發送 (針對 GitHub Pages 的跨網域請求)
         fetch(GAS_API_URL, {
           method: 'POST',
-          mode: 'no-cors', // 關鍵：避開 CORS 錯誤
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }).then(() => {
-          log('✅ 請求已發送');
-          alert('打卡成功！');
+          alert('✅ 打卡成功！');
           liff.closeWindow();
         }).catch(err => {
-          log('❌ 發送失敗: ' + err);
-          alert('傳送失敗，請截圖給管理員。');
-          // 失敗時恢復畫面
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('main').style.display = 'block';
+          alert('❌ 失敗：' + err);
+          liff.closeWindow();
         });
-
       }, err => {
-        log('❌ 定位失敗: ' + err.message);
-        alert('定位失敗，請確認 GPS 已開啟。');
+        alert('定位失敗，請確認 GPS 已開啟');
         document.getElementById('loading').style.display = 'none';
         document.getElementById('main').style.display = 'block';
       });
